@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VoiceScript</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#07080a;
+  --s1:#0e1014;
+  --s2:#151719;
+  --s3:#1c1f23;
+  --b1:#1e2226;
+  --b2:#272c32;
+  --lime:#c8ff00;
+  --limedim:rgba(200,255,0,0.1);
+  --limeglow:rgba(200,255,0,0.22);
+  --cyan:#00e5ff;
+  --red:#ff3d3d;
+  --t1:#e8eaed;
+  --t2:#7a8190;
+  --t3:#3a3f48;
+  --mono:'DM Mono',monospace;
+  --display:'Bebas Neue',sans-serif;
+  --body:'Outfit',sans-serif;
+}
+
+html,body{height:100%}
+
+body{
+  background:var(--bg);
+  color:var(--t1);
+  font-family:var(--body);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow-x:hidden;
+}
+
+/* grid bg */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(200,255,0,0.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(200,255,0,0.02) 1px,transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;z-index:0;
+}
+
+/* top glow */
+body::after{
+  content:'';
+  position:fixed;top:-160px;left:50%;transform:translateX(-50%);
+  width:600px;height:400px;
+  background:radial-gradient(ellipse,rgba(200,255,0,0.055) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* ── HEADER ── */
+header{
+  position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 36px;
+  border-bottom:1px solid var(--b1);
+  background:rgba(7,8,10,0.85);
+  backdrop-filter:blur(10px);
+}
+
+.logo{display:flex;align-items:center;gap:12px}
+
+.logo-icon{
+  width:34px;height:34px;
+  background:var(--limedim);
+  border:1px solid rgba(200,255,0,0.2);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+}
+
+.logo-text{font-family:var(--display);font-size:21px;letter-spacing:2px}
+.logo-text em{font-style:normal;color:var(--lime)}
+
+.header-right{display:flex;align-items:center;gap:12px}
+
+.vtag{font-family:var(--mono);font-size:10px;color:var(--t3);letter-spacing:1px}
+
+.live-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 11px;
+  border:1px solid var(--b2);border-radius:100px;
+  font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--t3);
+  transition:all .3s;
+}
+.live-pill.on{border-color:rgba(255,61,61,.5);color:var(--red);background:rgba(255,61,61,.07)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--t3);transition:background .3s}
+.live-pill.on .live-dot{background:var(--red);box-shadow:0 0 6px var(--red);animation:lpulse 1.2s ease-in-out infinite}
+@keyframes lpulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ── MAIN ── */
+main{
+  position:relative;z-index:10;
+  flex:1;max-width:840px;width:100%;
+  margin:0 auto;padding:44px 24px 36px;
+  display:flex;flex-direction:column;gap:26px;
+}
+
+/* ── HERO ── */
+.hero{display:flex;align-items:center;gap:32px}
+
+.ring-wrap{
+  position:relative;flex-shrink:0;
+  width:116px;height:116px;
+  display:flex;align-items:center;justify-content:center;
+}
+
+.ring{
+  position:absolute;border-radius:50%;
+  border:1px solid transparent;transition:all .4s;
+}
+.r1{width:88px;height:88px}
+.r2{width:104px;height:104px}
+.r3{width:116px;height:116px}
+
+.ringing .r1{border-color:rgba(200,255,0,.38);animation:rp 2s ease-in-out infinite}
+.ringing .r2{border-color:rgba(200,255,0,.18);animation:rp 2s ease-in-out .3s infinite}
+.ringing .r3{border-color:rgba(200,255,0,.08);animation:rp 2s ease-in-out .6s infinite}
+@keyframes rp{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.06);opacity:.55}}
+
+.rec-btn{
+  position:relative;z-index:2;
+  width:78px;height:78px;border-radius:50%;
+  border:2px solid rgba(200,255,0,.28);
+  background:linear-gradient(135deg,#1a1e24,#0e1014);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .22s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  color:var(--lime);
+}
+.rec-btn:hover{border-color:var(--lime);box-shadow:0 0 22px var(--limeglow);transform:scale(1.05)}
+.rec-btn.on{border-color:var(--red);color:var(--red);box-shadow:0 0 28px rgba(255,61,61,.28);background:linear-gradient(135deg,#1f1214,#0e1014);animation:rbpulse 1.8s ease-in-out infinite}
+@keyframes rbpulse{0%,100%{box-shadow:0 0 10px rgba(255,61,61,.2)}50%{box-shadow:0 0 32px rgba(255,61,61,.45)}}
+
+.icon-mic,.icon-stop{display:flex;align-items:center;justify-content:center;position:absolute;transition:opacity .18s,transform .18s}
+.icon-stop{opacity:0;transform:scale(.7)}
+.rec-btn.on .icon-mic{opacity:0;transform:scale(.7)}
+.rec-btn.on .icon-stop{opacity:1;transform:scale(1)}
+
+.hero-text{flex:1}
+.hero-label{
+  font-family:var(--display);font-size:34px;letter-spacing:1px;
+  color:var(--t1);line-height:1;margin-bottom:7px;transition:color .3s;
+}
+.hero-label.on{color:var(--lime)}
+.hero-sub{font-family:var(--mono);font-size:11px;color:var(--t3);letter-spacing:.8px;line-height:1.5}
+.hero-sub.err{color:#ff8c42;font-size:12px}
+
+.timer{
+  font-family:var(--display);font-size:50px;letter-spacing:2px;
+  color:var(--t3);transition:color .3s;min-width:106px;text-align:right;
+}
+.timer.on{color:var(--lime)}
+
+/* ── WAVE ── */
+.wave-wrap{
+  height:68px;
+  background:var(--s1);border:1px solid var(--b1);border-radius:10px;
+  overflow:hidden;position:relative;
+}
+
+#waveCanvas{
+  position:absolute;inset:0;width:100%;height:100%;
+  opacity:0;transition:opacity .4s;
+}
+#waveCanvas.on{opacity:1}
+
+.wave-bars{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  transition:opacity .4s;
+}
+.wave-bars.off{opacity:0;pointer-events:none}
+.wave-bars span{
+  display:block;width:3px;background:var(--b2);border-radius:2px;
+  animation:wb 1.9s ease-in-out infinite;
+}
+.wave-bars span:nth-child(1) {height:6px; animation-delay:0s}
+.wave-bars span:nth-child(2) {height:12px;animation-delay:.08s}
+.wave-bars span:nth-child(3) {height:20px;animation-delay:.16s}
+.wave-bars span:nth-child(4) {height:28px;animation-delay:.24s}
+.wave-bars span:nth-child(5) {height:36px;animation-delay:.32s}
+.wave-bars span:nth-child(6) {height:44px;animation-delay:.40s}
+.wave-bars span:nth-child(7) {height:50px;animation-delay:.48s}
+.wave-bars span:nth-child(8) {height:44px;animation-delay:.56s}
+.wave-bars span:nth-child(9) {height:36px;animation-delay:.64s}
+.wave-bars span:nth-child(10){height:28px;animation-delay:.72s}
+.wave-bars span:nth-child(11){height:20px;animation-delay:.80s}
+.wave-bars span:nth-child(12){height:12px;animation-delay:.88s}
+.wave-bars span:nth-child(13){height:6px; animation-delay:.96s}
+@keyframes wb{0%,100%{transform:scaleY(.35);opacity:.25}50%{transform:scaleY(1);opacity:.65}}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:10px}
+
+.lang-sel{
+  background:var(--s2);border:1px solid var(--b2);color:var(--t2);
+  border-radius:8px;padding:9px 28px 9px 12px;
+  font-family:var(--mono);font-size:12px;cursor:pointer;outline:none;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23555' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  transition:all .15s;
+}
+.lang-sel:focus,.lang-sel:hover{border-color:rgba(200,255,0,.3);color:var(--t1)}
+
+.tbr{margin-left:auto;display:flex;align-items:center;gap:10px}
+
+.wc{font-family:var(--mono);font-size:12px;color:var(--t3);white-space:nowrap}
+
+.tbtn{
+  display:flex;align-items:center;gap:7px;
+  background:var(--s2);border:1px solid var(--b2);color:var(--t2);
+  border-radius:8px;padding:9px 14px;
+  font-family:var(--body);font-size:13px;font-weight:500;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.tbtn:hover{color:var(--red);border-color:rgba(255,61,61,.35)}
+.tbtn.accent{background:var(--limedim);border-color:rgba(200,255,0,.22);color:var(--lime)}
+.tbtn.accent:hover{background:rgba(200,255,0,.16);border-color:var(--lime);box-shadow:0 0 14px var(--limeglow)}
+.tbtn.accent.copied{background:rgba(0,229,255,.09);border-color:rgba(0,229,255,.35);color:var(--cyan)}
+
+/* ── TRANSCRIPT ── */
+.t-panel{
+  flex:1;display:flex;
+  background:var(--s1);border:1px solid var(--b1);border-radius:10px;
+  overflow:hidden;min-height:240px;
+}
+
+.t-gutter{
+  width:42px;flex-shrink:0;
+  background:var(--s2);border-right:1px solid var(--b1);
+  display:flex;align-items:flex-start;justify-content:center;padding-top:18px;
+}
+.t-gutter span{
+  font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--t3);
+  writing-mode:vertical-lr;transform:rotate(180deg);
+}
+
+.t-scroll{
+  flex:1;overflow-y:auto;padding:22px 26px;position:relative;
+}
+.t-scroll::-webkit-scrollbar{width:3px}
+.t-scroll::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+.t-text{
+  font-size:20px;line-height:1.8;color:var(--t1);
+  font-weight:400;letter-spacing:-.1px;word-break:break-word;min-height:40px;
+}
+
+.interim{color:var(--t2);font-style:italic}
+
+.caret{
+  display:none;
+  width:2px;height:1.1em;background:var(--lime);
+  margin-left:1px;vertical-align:text-bottom;border-radius:1px;
+  animation:cblink 1s step-end infinite;
+}
+.caret.on{display:inline-block}
+@keyframes cblink{0%,100%{opacity:1}50%{opacity:0}}
+
+.t-empty{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;color:var(--t3);text-align:center;pointer-events:none;
+  transition:opacity .3s;
+}
+.t-empty.hide{opacity:0}
+.t-empty svg{opacity:.2}
+.t-empty p{font-size:14px;line-height:1.7;color:var(--t3)}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:26px;right:26px;
+  display:flex;align-items:center;gap:8px;
+  background:var(--cyan);color:#07080a;
+  font-family:var(--body);font-size:13px;font-weight:600;
+  padding:11px 18px;border-radius:8px;
+  opacity:0;transform:translateY(8px) scale(.97);
+  transition:all .22s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;z-index:9999;
+}
+.toast.show{opacity:1;transform:translateY(0) scale(1)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  header{padding:16px 18px}
+  main{padding:28px 14px 28px;gap:18px}
+  .hero{flex-wrap:wrap;gap:18px}
+  .timer{font-size:36px}
+  .hero-label{font-size:26px}
+  .toolbar{flex-wrap:wrap}
+  .tbr{width:100%;justify-content:flex-end}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="9" r="4" fill="#c8ff00"/>
+        <circle cx="9" cy="9" r="7.5" stroke="#c8ff00" stroke-width="1" opacity="0.4"/>
+      </svg>
+    </div>
+    <span class="logo-text">VOICE<em>SCRIPT</em></span>
+  </div>
+  <div class="header-right">
+    <span class="vtag">v2.1</span>
+    <div class="live-pill" id="livePill">
+      <span class="live-dot"></span>
+      <span>LIVE</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="ring-wrap" id="ringWrap">
+      <div class="ring r3"></div>
+      <div class="ring r2"></div>
+      <div class="ring r1"></div>
+      <button class="rec-btn" id="recBtn">
+        <span class="icon-mic">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="12" rx="3"/>
+            <path d="M5 10a7 7 0 0 0 14 0"/>
+            <line x1="12" y1="20" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </span>
+        <span class="icon-stop">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="4" y="4" width="16" height="16" rx="3"/>
+          </svg>
+        </span>
+      </button>
+    </div>
+
+    <div class="hero-text">
+      <p class="hero-label" id="heroLabel">Click to record</p>
+      <p class="hero-sub" id="heroSub">Web Speech API · private &amp; local</p>
+    </div>
+
+    <div class="timer" id="timer">00:00</div>
+  </section>
+
+  <!-- Waveform -->
+  <div class="wave-wrap">
+    <canvas id="waveCanvas"></canvas>
+    <div class="wave-bars" id="waveBars">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <select class="lang-sel" id="langSel">
+      <option value="en-US">🇺🇸 English (US)</option>
+      <option value="en-GB">🇬🇧 English (UK)</option>
+      <option value="es-ES">🇪🇸 Español</option>
+      <option value="fr-FR">🇫🇷 Français</option>
+      <option value="de-DE">🇩🇪 Deutsch</option>
+      <option value="it-IT">🇮🇹 Italiano</option>
+      <option value="pt-BR">🇧🇷 Português</option>
+      <option value="ja-JP">🇯🇵 日本語</option>
+      <option value="zh-CN">🇨🇳 中文</option>
+      <option value="ko-KR">🇰🇷 한국어</option>
+    </select>
+    <div class="tbr">
+      <span class="wc" id="wc">0 words</span>
+      <button class="tbtn" id="clearBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
+        </svg>
+        Clear
+      </button>
+      <button class="tbtn accent" id="copyBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        Copy
+      </button>
+    </div>
+  </div>
+
+  <!-- Transcript -->
+  <section class="t-panel">
+    <div class="t-gutter"><span>TRANSCRIPT</span></div>
+    <div class="t-scroll" id="tScroll">
+      <div class="t-text" id="tText">
+        <span id="committed"></span><span class="interim" id="interim"></span><span class="caret" id="caret"></span>
+      </div>
+      <div class="t-empty" id="tEmpty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="2" width="6" height="12" rx="3"/>
+          <path d="M5 10a7 7 0 0 0 14 0"/>
+          <line x1="12" y1="20" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+        <p>Press the button and start speaking.<br/>Your words appear here instantly.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+  Copied!
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ── Elements ──────────────────────────────────────────────────────────
+  const recBtn    = document.getElementById('recBtn');
+  const ringWrap  = document.getElementById('ringWrap');
+  const heroLabel = document.getElementById('heroLabel');
+  const heroSub   = document.getElementById('heroSub');
+  const timerEl   = document.getElementById('timer');
+  const livePill  = document.getElementById('livePill');
+  const langSel   = document.getElementById('langSel');
+  const clearBtn  = document.getElementById('clearBtn');
+  const copyBtn   = document.getElementById('copyBtn');
+  const wcEl      = document.getElementById('wc');
+  const committed = document.getElementById('committed');
+  const interimEl = document.getElementById('interim');
+  const caretEl   = document.getElementById('caret');
+  const tScroll   = document.getElementById('tScroll');
+  const tEmpty    = document.getElementById('tEmpty');
+  const waveCanvas= document.getElementById('waveCanvas');
+  const waveBars  = document.getElementById('waveBars');
+  const toast     = document.getElementById('toast');
+
+  // ── State ─────────────────────────────────────────────────────────────
+  let recog        = null;
+  let isOn         = false;
+  let text         = '';
+  let t0           = null;
+  let tInterval    = null;
+  let restart      = false;
+  let audioCtx     = null;
+  let analyser     = null;
+  let raf          = null;
+  let stream       = null;
+  let watchdog     = null;
+  let lastActivity = 0;
+  let lastInterim  = '';
+
+  // ── Speech API ────────────────────────────────────────────────────────
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SR) {
+    recBtn.disabled = true;
+    heroLabel.textContent = 'Not supported';
+    heroSub.textContent   = 'Use Chrome or Edge on desktop';
+  }
+
+  // ── Commit any not-yet-finalized (grey) text before a restart discards it
+  function commitInterim() {
+    if (lastInterim) {
+      text += lastInterim + ' ';
+      lastInterim = '';
+      render('');
+    }
+  }
+
+  // ── Build recognition ─────────────────────────────────────────────────
+  function makeRecog() {
+    const r = new SR();
+    r.continuous      = true;
+    r.interimResults  = true;
+    r.maxAlternatives = 1;
+    r.lang            = langSel.value;
+
+    r.onstart = () => {
+      setUI(true);
+      lastActivity = Date.now();
+    };
+
+    r.onresult = (e) => {
+      let tmp = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        e.results[i].isFinal ? (text += t + ' ') : (tmp = t);
+      }
+      render(tmp);
+      lastActivity = Date.now();
+      lastInterim  = tmp;
+    };
+
+    r.onerror = (e) => {
+      console.warn('SR error:', e.error);
+      const map = {
+        'not-allowed'        : 'Mic blocked — click Allow when Chrome asks, or check site settings',
+        'service-not-allowed': 'Blocked — open index.html directly in Chrome (not Live Server)',
+        'network'            : 'Network error — Chrome needs internet to process speech',
+        'audio-capture'      : 'No microphone detected — plug one in and try again',
+        'no-speech'          : null,
+        'aborted'            : null,
+      };
+      const msg = map[e.error];
+      if (msg) {
+        heroSub.textContent = msg;
+        heroSub.classList.add('err');
+      }
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        isOn = false; restart = false; setUI(false);
+      }
+    };
+
+    r.onend = () => {
+      if (restart && isOn) {
+        commitInterim();
+        setTimeout(() => {
+          if (!restart || !isOn) return;
+          try {
+            recog = makeRecog();
+            recog.start();
+          } catch(err) {
+            console.warn('SR restart failed:', err);
+            heroSub.textContent = 'Lost connection to speech service — click record to restart';
+            heroSub.classList.add('err');
+            isOn = false; restart = false; setUI(false);
+          }
+        }, 250);
+      }
+    };
+
+    return r;
+  }
+
+  // ── Watchdog: Chrome sometimes stalls continuous recognition without
+  // ever firing onend/onerror. If no result has arrived in a while,
+  // force-kill and recreate the recognizer ourselves. ───────────────────
+  const WATCHDOG_TIMEOUT = 8000;
+
+  function watchdogCheck() {
+    if (!isOn) return;
+    if (Date.now() - lastActivity < WATCHDOG_TIMEOUT) return;
+
+    console.warn('SR watchdog: no activity for', WATCHDOG_TIMEOUT, 'ms — forcing restart');
+    restart = false;
+    commitInterim();
+    if (recog) { try { recog.stop(); } catch(_) {} try { recog.abort(); } catch(_) {} }
+
+    setTimeout(() => {
+      if (!isOn) return;
+      restart = true;
+      recog = makeRecog();
+      lastActivity = Date.now();
+      try {
+        recog.start();
+      } catch(err) {
+        console.warn('SR watchdog restart failed:', err);
+        heroSub.textContent = 'Lost connection to speech service — click record to restart';
+        heroSub.classList.add('err');
+        isOn = false; restart = false; setUI(false);
+        clearInterval(watchdog); watchdog = null;
+      }
+    }, 300);
+  }
+
+  // ── Start ─────────────────────────────────────────────────────────────
+  async function start() {
+    if (!SR) return;
+
+    isOn    = true;
+    restart = true;
+    recog   = makeRecog();
+
+    heroLabel.textContent = 'Starting…';
+    heroSub.textContent   = 'Waiting for mic permission…';
+    heroSub.classList.remove('err');
+
+    try {
+      recog.start();  // ← this triggers the browser mic prompt
+    } catch(err) {
+      isOn = false; restart = false;
+      heroLabel.textContent = 'Click to record';
+      heroSub.textContent   = 'Could not start: ' + err.message;
+      return;
+    }
+
+    t0        = Date.now();
+    tInterval = setInterval(tick, 500);
+    lastActivity = Date.now();
+    watchdog  = setInterval(watchdogCheck, 2000);
+
+    // Visualizer (optional — won't block transcription if denied)
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      startViz(stream);
+    } catch(_) { /* no waveform, no problem */ }
+  }
+
+  // ── Stop ──────────────────────────────────────────────────────────────
+  function stop() {
+    restart = false;
+    isOn    = false;
+    commitInterim();
+    if (recog)  { try { recog.stop(); } catch(_) {} recog = null; }
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    stopViz();
+    clearInterval(tInterval);
+    clearInterval(watchdog); watchdog = null;
+    setUI(false);
+    render('');
+    heroSub.textContent = 'Done · ' + words(text) + ' words transcribed';
+    heroSub.classList.remove('err');
+  }
+
+  function toggle() { isOn ? stop() : start(); }
+
+  // ── UI sync ───────────────────────────────────────────────────────────
+  function setUI(on) {
+    recBtn.classList.toggle('on', on);
+    ringWrap.classList.toggle('ringing', on);
+    livePill.classList.toggle('on', on);
+    timerEl.classList.toggle('on', on);
+    heroLabel.classList.toggle('on', on);
+    heroLabel.textContent = on ? 'Listening…' : 'Click to record';
+    caretEl.classList.toggle('on', on);
+    if (!on) timerEl.textContent = '00:00';
+    if (!on) heroSub.classList.remove('err');
+  }
+
+  // ── Render text ───────────────────────────────────────────────────────
+  function render(tmp) {
+    committed.textContent = text;
+    interimEl.textContent = tmp;
+    const hasText = text.length > 0 || tmp.length > 0;
+    tEmpty.classList.toggle('hide', hasText);
+    wcEl.textContent = words(text) + ' word' + (words(text) !== 1 ? 's' : '');
+    tScroll.scrollTop = tScroll.scrollHeight;
+  }
+
+  function words(s) {
+    return s.trim().split(/\s+/).filter(Boolean).length;
+  }
+
+  // ── Timer ─────────────────────────────────────────────────────────────
+  function tick() {
+    const s  = Math.floor((Date.now() - t0) / 1000);
+    const mm = String(Math.floor(s / 60)).padStart(2,'0');
+    const ss = String(s % 60).padStart(2,'0');
+    timerEl.textContent = mm + ':' + ss;
+  }
+
+  // ── Clear ─────────────────────────────────────────────────────────────
+  function clear() {
+    text = '';
+    render('');
+    if (!isOn) {
+      heroSub.textContent = 'Web Speech API · private & local';
+      timerEl.textContent = '00:00';
+      timerEl.classList.remove('on');
+    }
+  }
+
+  // ── Copy ──────────────────────────────────────────────────────────────
+  async function copy() {
+    if (!text.trim()) return;
+    try {
+      await navigator.clipboard.writeText(text.trim());
+      copyBtn.classList.add('copied');
+      copyBtn.textContent = '✓ Copied!';
+      toast.classList.add('show');
+      setTimeout(() => {
+        copyBtn.classList.remove('copied');
+        copyBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';
+        toast.classList.remove('show');
+      }, 2000);
+    } catch(_) {}
+  }
+
+  // ── Visualizer ────────────────────────────────────────────────────────
+  function startViz(s) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.8;
+    audioCtx.createMediaStreamSource(s).connect(analyser);
+
+    waveCanvas.classList.add('on');
+    waveBars.classList.add('off');
+
+    const dpr = devicePixelRatio || 1;
+    function resize() {
+      waveCanvas.width  = waveCanvas.offsetWidth  * dpr;
+      waveCanvas.height = waveCanvas.offsetHeight * dpr;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const buf = new Uint8Array(analyser.frequencyBinCount);
+    const ctx = waveCanvas.getContext('2d');
+
+    function draw() {
+      raf = requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(buf);
+      const W = waveCanvas.width, H = waveCanvas.height;
+      ctx.clearRect(0,0,W,H);
+      const n = 64, bw = (W/n)*.55, gap = (W/n)*.45;
+      for (let i=0;i<n;i++) {
+        const v = buf[Math.floor(i*buf.length/n)] / 255;
+        const h = Math.max(3*dpr, v*H*.86);
+        const x = i*(bw+gap)+gap/2, y=(H-h)/2;
+        const a = .22+v*.78;
+        const g = ctx.createLinearGradient(0,y,0,y+h);
+        g.addColorStop(0,  `rgba(200,255,0,${a*.45})`);
+        g.addColorStop(.5, `rgba(200,255,0,${a})`);
+        g.addColorStop(1,  `rgba(200,255,0,${a*.45})`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.roundRect(x,y,bw,h,2);
+        ctx.fill();
+      }
+    }
+    draw();
+  }
+
+  function stopViz() {
+    if (raf)      cancelAnimationFrame(raf);
+    if (audioCtx) { audioCtx.close(); audioCtx = null; }
+    waveCanvas.classList.remove('on');
+    waveBars.classList.remove('off');
+    const ctx = waveCanvas.getContext('2d');
+    if (ctx) ctx.clearRect(0,0,waveCanvas.width,waveCanvas.height);
+  }
+
+  // ── Events ────────────────────────────────────────────────────────────
+  recBtn.addEventListener('click', toggle);
+  clearBtn.addEventListener('click', clear);
+  copyBtn.addEventListener('click', copy);
+
+  langSel.addEventListener('change', () => {
+    if (!isOn) return;
+    restart = false;
+    commitInterim();
+    if (recog) { try { recog.stop(); } catch(_) {} }
+    setTimeout(() => { restart = true; recog = makeRecog(); recog.start(); }, 250);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && e.target === document.body) {
+      e.preventDefault(); toggle();
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

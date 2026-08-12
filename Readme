@@ -1,0 +1,61 @@
+# VoiceScript — Setup Guide
+
+## ⚡ Quickest way to run it (30 seconds)
+
+Chrome blocks the microphone on `http://localhost` (Live Server).
+**Do NOT use Live Server.** Instead:
+
+### Option 1 — Open directly in Chrome (easiest, zero setup)
+1. In VS Code, right-click `index.html` in the Explorer sidebar
+2. Click **"Reveal in File Explorer"** (Windows) or **"Reveal in Finder"** (Mac)
+3. Double-click `index.html` — it opens in your default browser
+4. Or drag it straight into a Chrome window
+
+That's it. Chrome allows mic on `file://` pages. It will work immediately.
+
+---
+
+### Option 2 — Proper HTTPS local server via Node
+
+Run this once in your VS Code terminal:
+
+```bash
+npx serve . --ssl-cert /path/to/cert.pem
+```
+
+Or the simplest HTTPS dev server:
+
+```bash
+npx http-server . -S -C cert.pem -K key.pem
+```
+
+---
+
+### Option 3 — Allow mic on localhost in Chrome flags
+
+1. Open Chrome and go to: `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
+2. Add `http://127.0.0.1:5500` (or whatever port Live Server uses)
+3. Set it to **Enabled**
+4. Relaunch Chrome
+5. Now Live Server will work fine with the mic
+
+---
+
+## Files
+
+```
+voice-transcript/
+├── index.html   ← open this in Chrome
+├── style.css
+├── script.js
+└── README.md
+```
+
+## Browser support
+
+| Browser | Works? |
+|---------|--------|
+| Chrome  | ✅ Yes |
+| Edge    | ✅ Yes |
+| Safari  | ⚠ Partial |
+| Firefox | ❌ No (no Web Speech API) |
