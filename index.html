@@ -227,6 +227,11 @@ main{
 .mtbtn.on{background:var(--limedim);color:var(--lime)}
 .mtbtn:not(.on):hover{color:var(--t1)}
 
+.progress-wrap{margin-top:14px;display:flex;align-items:center;gap:10px;justify-content:center}
+.progress-bar{width:220px;height:6px;background:var(--s2);border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;width:0%;background:var(--lime);border-radius:99px;transition:width .25s ease}
+.progress-pct{font-size:12px;color:var(--t2);min-width:34px;text-align:right}
+
 .wc{font-family:var(--mono);font-size:12px;color:var(--t3);white-space:nowrap}
 
 .tbtn{
@@ -364,6 +369,10 @@ main{
     <div class="hero-text">
       <p class="hero-label" id="heroLabel">Click to record</p>
       <p class="hero-sub" id="heroSub">Web Speech API · private &amp; local</p>
+      <div class="progress-wrap" id="progressWrap" style="display:none">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <p class="progress-pct" id="progressPct">0%</p>
+      </div>
     </div>
 
     <div class="timer" id="timer">00:00</div>
@@ -465,6 +474,9 @@ main{
   const toast     = document.getElementById('toast');
   const modeLiveBtn    = document.getElementById('modeLiveBtn');
   const modeOfflineBtn = document.getElementById('modeOfflineBtn');
+  const progressWrap = document.getElementById('progressWrap');
+  const progressFill = document.getElementById('progressFill');
+  const progressPct  = document.getElementById('progressPct');
 
   // ── State ─────────────────────────────────────────────────────────────
   let recog        = null;
@@ -713,9 +725,12 @@ main{
     stopViz();
     clearInterval(tInterval);
 
-    heroLabel.textContent = 'Transcribing…';
-    heroSub.textContent   = 'Loading model (first time only)…';
+    heroLabel.textContent = 'Processing…';
+    heroSub.textContent   = 'Reading recording…';
     heroSub.classList.remove('err');
+    progressWrap.style.display = 'flex';
+    progressFill.style.width = '0%';
+    progressPct.textContent = '0%';
 
     const stopped = new Promise((resolve) => { mediaRecorder.onstop = resolve; });
     mediaRecorder.stop();
@@ -727,19 +742,48 @@ main{
     mediaRecorder = null;
 
     try {
-      const result = await window.VoiceScriptOffline.transcribeBlob(blob, (msg) => {
+      heroSub.textContent = 'Decoding audio…';
+      const samples = await decodeTo16kMono(blob);
+      heroLabel.textContent = 'Transcribing…';
+
+      const result = await window.VoiceScriptOffline.transcribe(samples, (msg, pct) => {
         heroSub.textContent = msg;
+        if (typeof pct === 'number') {
+          progressFill.style.width = pct + '%';
+          progressPct.textContent = Math.round(pct) + '%';
+        }
       });
+
       text = result;
       render('');
       heroLabel.textContent = 'Click to record';
       heroSub.textContent   = 'Done · ' + words(text) + ' words transcribed';
+      progressWrap.style.display = 'none';
     } catch(err) {
       console.warn('Offline transcription failed:', err);
       heroLabel.textContent = 'Click to record';
       heroSub.textContent   = 'Transcription failed: ' + err.message;
       heroSub.classList.add('err');
+      progressWrap.style.display = 'none';
     }
+  }
+
+  // Decode a recorded audio Blob into mono 16kHz samples (what Whisper expects).
+  async function decodeTo16kMono(blob) {
+    const arrBuf = await blob.arrayBuffer();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const decoded = await ctx.decodeAudioData(arrBuf);
+    ctx.close();
+
+    const targetRate = 16000;
+    const duration = decoded.duration;
+    const offline = new OfflineAudioContext(1, Math.ceil(duration * targetRate), targetRate);
+    const src = offline.createBufferSource();
+    src.buffer = decoded;
+    src.connect(offline.destination);
+    src.start();
+    const rendered = await offline.startRendering();
+    return rendered.getChannelData(0).slice(); // copy out of the AudioBuffer
   }
 
   // ── UI sync ───────────────────────────────────────────────────────────
@@ -884,45 +928,96 @@ main{
 </script>
 
 <!-- ── Offline transcription (Hugging Face's official Transformers.js library +
-     Whisper model weights, both from huggingface.co). Loaded lazily — nothing
-     downloads unless you switch to Offline mode and record something. ────── -->
+     Whisper model weights, both from huggingface.co). All the heavy work runs
+     inside a Web Worker so the page can never freeze, no matter how long a
+     recording is. Nothing downloads unless you switch to Offline mode. ────── -->
 <script type="module">
-  import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
+  const WORKER_SRC = `
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
+    env.allowLocalModels = false;
 
-  env.allowLocalModels = false;
+    const MODEL = 'Xenova/whisper-base.en';
+    const SAMPLE_RATE = 16000;
+    const CHUNK_SECONDS = 28;   // stay safely under Whisper's 30s window
 
-  let transcriberPromise = null;
-
-  function getTranscriber(onProgress) {
-    if (!transcriberPromise) {
-      transcriberPromise = pipeline('automatic-speech-recognition', 'Xenova/whisper-base.en', {
-        progress_callback: (p) => {
-          if (!onProgress) return;
-          if (p.status === 'progress' && p.total) {
-            const pct = Math.round((p.loaded / p.total) * 100);
-            onProgress(`Downloading model… ${pct}%`);
-          } else if (p.status === 'ready') {
-            onProgress('Model ready — transcribing…');
+    let transcriberPromise = null;
+    function getTranscriber() {
+      if (!transcriberPromise) {
+        transcriberPromise = pipeline('automatic-speech-recognition', MODEL, {
+          progress_callback: (p) => {
+            if (p.status === 'progress' && p.total) {
+              const pct = Math.round((p.loaded / p.total) * 100);
+              postMessage({ type: 'progress', message: 'Downloading model… ' + pct + '%', pct: pct * 0.3 });
+            } else if (p.status === 'ready') {
+              postMessage({ type: 'progress', message: 'Model ready — starting…', pct: 30 });
+            }
           }
+        });
+      }
+      return transcriberPromise;
+    }
+
+    self.onmessage = async (e) => {
+      const { samples } = e.data;
+      try {
+        const transcriber = await getTranscriber();
+        const chunkLen = CHUNK_SECONDS * SAMPLE_RATE;
+        const totalChunks = Math.max(1, Math.ceil(samples.length / chunkLen));
+        let combined = '';
+
+        for (let i = 0; i < totalChunks; i++) {
+          const start = i * chunkLen;
+          const chunk = samples.subarray(start, Math.min(start + chunkLen, samples.length));
+          const out = await transcriber(chunk);
+          if (out && out.text) combined += out.text.trim() + ' ';
+
+          const pct = 30 + ((i + 1) / totalChunks) * 70;
+          postMessage({
+            type: 'progress',
+            message: 'Transcribing… (' + (i + 1) + ' of ' + totalChunks + ')',
+            pct
+          });
         }
-      });
+
+        postMessage({ type: 'done', text: combined.trim() });
+      } catch (err) {
+        postMessage({ type: 'error', message: (err && err.message) ? err.message : String(err) });
+      }
+    };
+  `;
+
+  let worker = null;
+  function getWorker() {
+    if (!worker) {
+      const blob = new Blob([WORKER_SRC], { type: 'application/javascript' });
+      worker = new Worker(URL.createObjectURL(blob), { type: 'module' });
     }
-    return transcriberPromise;
+    return worker;
   }
 
-  async function transcribeBlob(blob, onProgress) {
-    const transcriber = await getTranscriber(onProgress);
-    if (onProgress) onProgress('Transcribing…');
-    const url = URL.createObjectURL(blob);
-    try {
-      const output = await transcriber(url, { chunk_length_s: 30, stride_length_s: 5 });
-      return (output && output.text) ? output.text.trim() : '';
-    } finally {
-      URL.revokeObjectURL(url);
-    }
+  function transcribe(samples, onProgress) {
+    return new Promise((resolve, reject) => {
+      const w = getWorker();
+      const onMessage = (e) => {
+        const msg = e.data;
+        if (msg.type === 'progress') {
+          if (onProgress) onProgress(msg.message, msg.pct);
+        } else if (msg.type === 'done') {
+          w.removeEventListener('message', onMessage);
+          resolve(msg.text);
+        } else if (msg.type === 'error') {
+          w.removeEventListener('message', onMessage);
+          reject(new Error(msg.message));
+        }
+      };
+      w.addEventListener('message', onMessage);
+      // Transfer the buffer so the worker gets it fast without copying.
+      const copy = samples.slice();
+      w.postMessage({ samples: copy }, [copy.buffer]);
+    });
   }
 
-  window.VoiceScriptOffline = { transcribeBlob };
+  window.VoiceScriptOffline = { transcribe };
 </script>
 </body>
 </html>
