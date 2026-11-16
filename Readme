@@ -59,3 +59,23 @@ voice-transcript/
 | Edge    | ✅ Yes |
 | Safari  | ⚠ Partial |
 | Firefox | ❌ No (no Web Speech API) |
+---
+
+## Mac desktop app
+
+A standalone VoiceScript.app (no Chrome needed). In the app only **Offline**
+mode works: Live mode relies on Chrome's speech service, which the app doesn't have.
+The first transcription downloads the Whisper model (~145MB); after that it works offline.
+
+Build it (needs Node.js):
+
+```bash
+npm install
+npm run dist
+```
+
+- `dist/VoiceScript-1.0.0-arm64.dmg` — installer: open it and drag VoiceScript to Applications
+- `dist/mac-arm64/VoiceScript.app` — the app itself
+- `npm start` — run it without packaging, for quick testing
+
+The app is self-signed, not notarized by Apple. On another Mac, right-click → **Open** the first time.

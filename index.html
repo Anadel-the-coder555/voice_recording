@@ -507,11 +507,15 @@ main{
   let recordedChunks = [];
 
   // ── Speech API ────────────────────────────────────────────────────────
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  // The desktop app exposes the API object but has no speech service behind it.
+  const inDesktopApp = !!(window.voiceScriptApp && window.voiceScriptApp.desktop);
+  const SR = inDesktopApp ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
 
   if (!SR) {
     modeLiveBtn.disabled = true;
-    modeLiveBtn.title = 'Live mode needs Chrome or Edge on desktop';
+    modeLiveBtn.title = inDesktopApp
+      ? 'Live mode is only available in Chrome or Edge — the app uses Offline mode'
+      : 'Live mode needs Chrome or Edge on desktop';
     setMode('offline');
   }
 

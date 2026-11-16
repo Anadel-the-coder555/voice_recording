@@ -1,0 +1,43 @@
+{
+  "name": "voicescript",
+  "productName": "VoiceScript",
+  "version": "1.0.0",
+  "description": "Voice recording and transcription",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.voicescript.app",
+    "productName": "VoiceScript",
+    "files": [
+      "index.html",
+      "electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg",
+        "dir"
+      ],
+      "icon": "build/icon.png",
+      "identity": null,
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "VoiceScript records your voice so it can transcribe it."
+      }
+    },
+    "afterPack": "build/adhoc-sign.js"
+  },
+  "author": "Anadel"
+}
